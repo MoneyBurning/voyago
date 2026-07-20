@@ -1,4 +1,4 @@
-import Groq, { APIConnectionTimeoutError } from "groq-sdk";
+import Groq, { APIConnectionTimeoutError, RateLimitError } from "groq-sdk";
 import { danangAttractions, danangHiddenSpots } from "@/data/danang";
 import { calculateBudget, getNights, resolveHotel } from "@/lib/budget";
 import { ensureDailyMeals } from "@/lib/itinerary";
@@ -272,6 +272,9 @@ export async function generateTravelPlan(input: TravelInput): Promise<TravelResu
   } catch (error) {
     if (error instanceof APIConnectionTimeoutError) {
       throw new Error("Groq 응답 시간이 초과되었습니다 (30초).");
+    }
+    if (error instanceof RateLimitError) {
+      throw new Error("현재 일시적으로 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.");
     }
     throw error;
   }

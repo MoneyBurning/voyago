@@ -41,7 +41,12 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[/api/generate]", error);
     const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
-    const status = /시간.?초과|timeout/i.test(message) ? 504 : 500;
+    let status = 500;
+    if (/혼잡|rate.?limit/i.test(message)) {
+      status = 429;
+    } else if (/초과|timeout/i.test(message)) {
+      status = 504;
+    }
     return NextResponse.json({ error: message }, { status });
   }
 }
