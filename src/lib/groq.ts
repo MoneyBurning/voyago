@@ -2,6 +2,7 @@ import Groq, { APIConnectionTimeoutError, RateLimitError } from "groq-sdk";
 import { danangAttractions, danangCafes, danangRestaurants } from "@/data/danang";
 import { calculateBudget, getNights, resolveHotel } from "@/lib/budget";
 import { ensureDailyMeals } from "@/lib/itinerary";
+import { enforceRouteRules } from "@/lib/routing";
 import type {
   AIAnalysis,
   ChecklistItem,
@@ -315,7 +316,10 @@ export async function generateTravelPlan(input: TravelInput): Promise<TravelResu
   const rawDays = (parsed.days as TravelResult["days"]) ?? [];
   // 시스템 프롬프트의 "하루 3끼 필수" 지시만으로는 실제로 지켜지지 않는 경우가 관측되어,
   // 빠진 끼니를 코드에서 결정론적으로 채워 넣는다 (재시도 대신 보정).
-  const days = ensureDailyMeals(rawDays, input.arrivalTime, input.departureTime);
+  const daysWithMeals = ensureDailyMeals(rawDays, input.arrivalTime, input.departureTime);
+  // 동선 규칙(호이안 전일 배정/숙소 스타일별 동선/이동거리 최적화)도 프롬프트만으로는
+  // 실제로 지켜지지 않는 경우가 관측되어, 같은 방식으로 코드에서 후보정한다.
+  const days = enforceRouteRules(daysWithMeals, hotel.style);
 
   // 예산은 Groq가 아니라 이 함수가 전적으로 계산한다 (AI는 장소만 선택).
   const budget = calculateBudget({

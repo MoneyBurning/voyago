@@ -68,11 +68,11 @@ function isSlotRequired(
   return true;
 }
 
-function isAirportItem(item: ScheduleItem): boolean {
+export function isAirportItem(item: ScheduleItem): boolean {
   return item.name.includes("공항") || item.desc.includes("공항");
 }
 
-function isHotelReturnItem(item: ScheduleItem): boolean {
+export function isHotelReturnItem(item: ScheduleItem): boolean {
   return item.category === "rest" && (item.name.includes("복귀") || item.name.includes("호텔로"));
 }
 
@@ -150,7 +150,7 @@ function fillDayMeals(
  * 항목이 항상 마지막 항목이 되도록 강제한다. 끼니를 끼워 넣거나 재배치하며
  * 앵커 항목의 상대적 순서가 틀어질 수 있어 마지막에 한 번 더 바로잡는다.
  */
-function stabilizeAnchors(items: ScheduleItem[], isFirstDay: boolean, isLastDay: boolean): ScheduleItem[] {
+export function stabilizeAnchors(items: ScheduleItem[], isFirstDay: boolean, isLastDay: boolean): ScheduleItem[] {
   const result = [...items];
 
   if (isFirstDay) {
