@@ -185,6 +185,62 @@ export interface HiddenSpot {
   category: "맛집" | "카페" | "시장";
 }
 
+/** 식당 카테고리 (검증된 다낭 식당 DB 전용) */
+export type RestaurantCategory = "쌀국수/분짜" | "해산물" | "반쎄오/로컬" | "고기구이";
+
+/** 실제 존재가 검증된 다낭 식당 (AI 허구 방지용 참조 DB) */
+export interface Restaurant {
+  name: string;
+  nameEn: string;
+  address: string;
+  lat: number;
+  lng: number;
+  category: RestaurantCategory;
+  /** 1인 기준 가격대 (예: "3~5만동") */
+  priceRange: string;
+  localRatio: number;
+  /** 영업 시작 시각 (HH:MM) */
+  openHour: string;
+  /** 영업 종료 시각 (HH:MM) */
+  closeHour: string;
+  /** 대표 메뉴 */
+  signature: string;
+  googleMapsUrl: string;
+}
+
+/** 실제 존재가 검증된 다낭 카페 (AI 허구 방지용 참조 DB) */
+export interface Cafe {
+  name: string;
+  nameEn: string;
+  address: string;
+  lat: number;
+  lng: number;
+  /** 1인 기준 가격대 (예: "4~6만동") */
+  priceRange: string;
+  /** 이 카페의 특징 한 줄 (뷰/시그니처 메뉴/인테리어 등) */
+  highlight: string;
+  localRatio: number;
+  googleMapsUrl: string;
+}
+
+/** 실제 존재가 검증된 다낭/호이안 관광지 (AI 허구 방지용 참조 DB) */
+export interface Attraction {
+  name: string;
+  nameEn: string;
+  lat: number;
+  lng: number;
+  /** 추천 방문 시간대 */
+  recommendedTime: string;
+  /** 평균 체류시간 (분) */
+  stayDuration: number;
+  /** 사진 점수 (0~100) */
+  photoScore: number;
+  crowdLevel: "낮음" | "보통" | "높음";
+  /** 입장료 (VND, 무료인 경우 "무료") */
+  entranceFee: string;
+  googleMapsUrl: string;
+}
+
 /** 결과에 포함되는 숨은 맛집 — 기본 정보 + AI의 추천 이유/예상 대기시간/평균 가격 */
 export interface RecommendedSpot extends HiddenSpot {
   /** AI가 이 장소를 추천한 이유 (예: "오늘 동선에서 가장 가까운 로컬 맛집") */
