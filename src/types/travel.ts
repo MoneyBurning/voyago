@@ -78,14 +78,93 @@ export interface DaySchedule {
   items: ScheduleItem[];
 }
 
-/** 예산 카테고리별 배분 (항공, 숙소, 식비, 교통, 쇼핑, 비상금) */
-export interface BudgetBreakdown {
-  flight: number;
-  hotel: number;
-  food: number;
-  transport: number;
-  shopping: number;
-  emergency: number;
+/** 항공권 예산 항목 */
+export interface FlightBudgetItem {
+  /** 총액 (만원) */
+  total: number;
+  /** 1인당 (만원) */
+  perPerson: number;
+  note: string;
+}
+
+/** 숙소 예산 항목 */
+export interface HotelBudgetItem {
+  /** 총액 (만원) */
+  total: number;
+  /** 1박 가격 (만원) */
+  perNight: number;
+  nights: number;
+  note: string;
+}
+
+/** 식비 예산 항목 */
+export interface FoodBudgetItem {
+  /** 총액 (만원) */
+  total: number;
+  /** 전체 인원 1일치 (만원) */
+  perDay: number;
+  /** 1인 전체 기간 (만원) */
+  perPerson: number;
+  /** 최소 예상 (만원) */
+  min: number;
+  /** 최대 예상 (만원) */
+  max: number;
+  note: string;
+}
+
+/** 교통비(그랩) 예산 항목 */
+export interface TransportBudgetItem {
+  /** 총액 (만원) */
+  total: number;
+  /** 1인당 (만원) */
+  perPerson: number;
+  note: string;
+  tip: string;
+}
+
+/** 음주비 예산 항목 */
+export interface AlcoholBudgetItem {
+  /** 총액 (만원) */
+  total: number;
+  /** interests에 술/펍이 포함되어 반영되었는지 여부 */
+  included: boolean;
+  note: string;
+}
+
+/** 입장료 예산 항목 */
+export interface EntranceBudgetItem {
+  /** 총액 (만원) */
+  total: number;
+  /** 포함된 입장료 항목 이름 목록 */
+  items: string[];
+  note: string;
+}
+
+/** 비상금 예산 항목 */
+export interface EmergencyBudgetItem {
+  /** 총액 (만원) */
+  total: number;
+  rate: string;
+}
+
+/** 사용자가 선택한 예산 구간 대비 실제 계산된 총 지출 상태 */
+export type BudgetStatus = "ok" | "over" | "under";
+
+/** 코드에서 100% 결정론적으로 계산하는 전체 예산 (AI는 장소만 선택, 금액은 계산하지 않음) */
+export interface BudgetCalculation {
+  flight: FlightBudgetItem;
+  hotel: HotelBudgetItem;
+  food: FoodBudgetItem;
+  transport: TransportBudgetItem;
+  alcohol: AlcoholBudgetItem;
+  entrance: EntranceBudgetItem;
+  emergency: EmergencyBudgetItem;
+  /** 전체 총액 (만원) */
+  total: number;
+  /** 1인당 총액 (만원) */
+  perPerson: number;
+  /** 사용자가 선택한 예산 구간 대비 상태 */
+  budgetStatus: BudgetStatus;
 }
 
 /** 현지인 비율이 높은 숨은 맛집/장소 */
@@ -98,6 +177,16 @@ export interface HiddenSpot {
   lat: number;
   lng: number;
   category: "맛집" | "카페" | "시장";
+}
+
+/** 결과에 포함되는 숨은 맛집 — 기본 정보 + AI의 추천 이유/예상 대기시간/평균 가격 */
+export interface RecommendedSpot extends HiddenSpot {
+  /** AI가 이 장소를 추천한 이유 (예: "오늘 동선에서 가장 가까운 로컬 맛집") */
+  reason: string;
+  /** 예상 대기시간 (예: "15~20분") */
+  waitTime: string;
+  /** 평균 가격 (만원 단위, 1인 기준) */
+  avgPrice: number;
 }
 
 /** 여행 준비물 체크리스트 항목 */
@@ -139,12 +228,23 @@ export interface TravelScore {
   satisfaction: number;
 }
 
-/** AI가 생성한 전체 여행 설계 결과 (일정, 예산, 맛집, 점수, 체크리스트, 숙소) */
+/** 결과 페이지 상단에 표시되는 "AI가 분석했습니다" 카드 내용 */
+export interface AIAnalysis {
+  /** 관심사 비율 분석 텍스트 (예: "먹방 43% / 야경 31% / 쇼핑 26%") */
+  analysis: string;
+  /** AI 한줄평 */
+  aiComment: string;
+  /** 이 일정을 짠 핵심 이유 (4개) */
+  reasons: string[];
+}
+
+/** AI가 생성한 전체 여행 설계 결과 (일정, 예산, 맛집, 점수, 체크리스트, 숙소, AI 분석) */
 export interface TravelResult {
   score: TravelScore;
   days: DaySchedule[];
-  budget: BudgetBreakdown;
-  hiddenSpots: HiddenSpot[];
+  budget: BudgetCalculation;
+  hiddenSpots: RecommendedSpot[];
   checklist: ChecklistItem[];
   hotel: HotelRecommendation;
+  aiAnalysis: AIAnalysis;
 }

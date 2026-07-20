@@ -1,4 +1,4 @@
-import type { BudgetBreakdown, HiddenSpot, HotelStyle, TravelBudget } from "@/types/travel";
+import type { HiddenSpot, HotelStyle, TravelBudget } from "@/types/travel";
 
 /** 다낭 숨은 로컬 맛집·카페 (실제 검색으로 수집한 검증 데이터) */
 export const danangHiddenSpots: HiddenSpot[] = [
@@ -537,15 +537,6 @@ export const danangHotels: HotelOption[] = [
     bookingUrl: "https://www.agoda.com/naman-retreat-danang",
   },
 ];
-
-/** 예산 구간별 배분표 (단위: 만원). 항공 35% · 숙소 28% · 식비 18% · 교통 7% · 쇼핑 7% · 비상금 5% 비율 적용 */
-export const danangBudgetTable: Record<TravelBudget, BudgetBreakdown> = {
-  "50": { flight: 18, hotel: 14, food: 9, transport: 4, shopping: 3, emergency: 2 },
-  "100": { flight: 35, hotel: 28, food: 18, transport: 7, shopping: 7, emergency: 5 },
-  "150": { flight: 53, hotel: 42, food: 27, transport: 11, shopping: 10, emergency: 7 },
-  "200": { flight: 70, hotel: 56, food: 36, transport: 14, shopping: 14, emergency: 10 },
-  "200+": { flight: 90, hotel: 70, food: 45, transport: 18, shopping: 18, emergency: 12 },
-};
 
 /** 다낭 여행 기본 정보 */
 export const danangInfo = {
