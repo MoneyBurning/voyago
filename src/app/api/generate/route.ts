@@ -11,6 +11,9 @@ function isValidTravelInput(value: unknown): value is TravelInput {
     typeof input.departure === "string" &&
     typeof input.destination === "string" &&
     typeof input.duration === "string" &&
+    typeof input.travelMonth === "number" &&
+    input.travelMonth >= 1 &&
+    input.travelMonth <= 12 &&
     typeof input.budget === "string" &&
     typeof input.people === "string" &&
     Array.isArray(input.interests) &&

@@ -283,11 +283,6 @@ export async function generateTravelPlan(input: TravelInput): Promise<TravelResu
 
   const days = (parsed.days as TravelResult["days"]) ?? [];
 
-  // TravelInput에 아직 여행 월/날짜 선택 UI가 없어, 항공권 성수기 판정은 임시로
-  // 현재 시스템 월을 사용한다. 정확한 계산을 위해서는 SearchCard에 여행 월 선택을
-  // 추가하고 TravelInput.travelMonth로 실제 값을 넘겨야 한다.
-  const travelMonth = new Date().getMonth() + 1;
-
   // 예산은 Groq가 아니라 이 함수가 전적으로 계산한다 (AI는 장소만 선택).
   const budget = calculateBudget({
     departure: input.departure,
@@ -296,7 +291,7 @@ export async function generateTravelPlan(input: TravelInput): Promise<TravelResu
     budget: input.budget,
     interests: input.interests,
     hotelStyle: input.hotelStyle,
-    travelMonth,
+    travelMonth: input.travelMonth,
   });
 
   return {

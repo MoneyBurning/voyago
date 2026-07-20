@@ -44,11 +44,15 @@ export type TimeOfDay = "morning" | "afternoon" | "evening";
 /** 숙소 스타일 */
 export type HotelStyle = "beach" | "city" | "hoian" | "budget" | "poolvilla";
 
-/** 사용자가 입력하는 여행 조건 (출발지, 여행지, 기간, 예산, 인원, 관심사, 도착/출발 시간대, 숙소 스타일) */
+/** 출발 월 (1~12) — 항공권 성수기 판별에 사용 */
+export type TravelMonth = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+
+/** 사용자가 입력하는 여행 조건 (출발지, 여행지, 기간, 출발 월, 예산, 인원, 관심사, 도착/출발 시간대, 숙소 스타일) */
 export interface TravelInput {
   departure: DepartureCity;
   destination: Destination;
   duration: TravelDuration;
+  travelMonth: TravelMonth;
   budget: TravelBudget;
   people: TravelPeople;
   interests: Interest[];

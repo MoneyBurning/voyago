@@ -14,12 +14,25 @@ import {
   type TravelBudget,
   type TravelDuration,
   type TravelInput,
+  type TravelMonth,
   type TravelPeople,
 } from "@/types/travel";
 
 const DEPARTURE_OPTIONS: DepartureCity[] = ["서울", "부산", "대구", "광주", "청주", "제주"];
 
 const DURATION_OPTIONS: TravelDuration[] = ["3박4일", "4박5일", "5박6일", "6박7일"];
+
+const PEAK_MONTHS = new Set([1, 7, 8]);
+const SHOULDER_MONTHS = new Set([5, 6, 9, 10]);
+
+/** 항공권 성수기 안내를 함께 보여주기 위한 월 옵션 라벨 (lib/budget.ts의 성수기 판별 기준과 동일) */
+function getMonthLabel(month: number): string {
+  if (PEAK_MONTHS.has(month)) return `${month}월 (성수기)`;
+  if (SHOULDER_MONTHS.has(month)) return `${month}월 (준성수기)`;
+  return `${month}월 (비수기)`;
+}
+
+const MONTH_OPTIONS: TravelMonth[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 const BUDGET_OPTIONS: { value: TravelBudget; label: string }[] = [
   { value: "50", label: "50만원" },
@@ -75,6 +88,7 @@ export default function SearchCard() {
   const [departure, setDeparture] = useState<DepartureCity | "">("");
   const [destination, setDestination] = useState<Destination>("다낭");
   const [duration, setDuration] = useState<TravelDuration>("4박5일");
+  const [travelMonth, setTravelMonth] = useState<TravelMonth>((new Date().getMonth() + 1) as TravelMonth);
   const [budget, setBudget] = useState<TravelBudget>("100");
   const [people, setPeople] = useState<TravelPeople>("혼자");
   const [interests, setInterests] = useState<Interest[]>([]);
@@ -99,6 +113,7 @@ export default function SearchCard() {
       departure,
       destination,
       duration,
+      travelMonth,
       budget,
       people,
       interests,
@@ -181,6 +196,21 @@ export default function SearchCard() {
             {DURATION_OPTIONS.map((d) => (
               <option key={d} value={d}>
                 {d}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1.5 text-sm text-subtext">
+          출발 월
+          <select
+            value={travelMonth}
+            onChange={(e) => setTravelMonth(Number(e.target.value) as TravelMonth)}
+            className={selectClass}
+          >
+            {MONTH_OPTIONS.map((month) => (
+              <option key={month} value={month}>
+                {getMonthLabel(month)}
               </option>
             ))}
           </select>
