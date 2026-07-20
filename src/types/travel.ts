@@ -34,7 +34,9 @@ export type Interest =
   | "역사"
   | "액티비티"
   | "술"
-  | "카페";
+  | "카페"
+  | "바나힐"
+  | "호이안";
 
 /** 하루 중 시간대 (다낭 도착/귀국 출발 시간대에 사용) */
 export type TimeOfDay = "morning" | "afternoon" | "evening";

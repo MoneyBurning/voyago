@@ -42,6 +42,8 @@ const INTEREST_OPTIONS: Interest[] = [
   "액티비티",
   "술",
   "카페",
+  "바나힐",
+  "호이안",
 ];
 
 const ARRIVAL_TIME_OPTIONS: { value: TimeOfDay; label: string }[] = [
