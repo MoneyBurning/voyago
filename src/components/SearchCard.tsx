@@ -138,7 +138,14 @@ export default function SearchCard() {
       const result = await response.json();
       sessionStorage.setItem("voyago_result", JSON.stringify(result));
       sessionStorage.setItem("voyago_input", JSON.stringify(input));
-      router.push("/result");
+      // SNS 공유 시 크롤러가 볼 og:title(app/result/page.tsx의 generateMetadata)을
+      // 위해 실제 콘텐츠(sessionStorage)와 별개로 요약값을 쿼리스트링에도 실어 보낸다.
+      const shareParams = new URLSearchParams({
+        destination: input.destination,
+        duration: input.duration,
+        score: String(result.score.total),
+      });
+      router.push(`/result?${shareParams.toString()}`);
     } catch (error) {
       alert(error instanceof Error ? error.message : "여행 일정 생성에 실패했습니다.");
       setLoading(false);
