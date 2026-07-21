@@ -1,7 +1,8 @@
 import Groq, { APIConnectionTimeoutError, RateLimitError } from "groq-sdk";
 import { danangAttractions, danangCafes, danangRestaurants } from "@/data/danang";
 import { calculateBudget, getNights, resolveHotel } from "@/lib/budget";
-import { ensureCafeBreaks, ensureDailyMeals, ensureNightlifeStops } from "@/lib/itinerary";
+import { enrichChecklistWithInterests } from "@/lib/checklist";
+import { applyDbDescriptions, ensureCafeBreaks, ensureDailyMeals, ensureNightlifeStops } from "@/lib/itinerary";
 import { enforceRouteRules } from "@/lib/routing";
 import type {
   AIAnalysis,
@@ -246,11 +247,31 @@ function normalizeAIAnalysis(raw: unknown): AIAnalysis {
   };
 }
 
-/** hiddenSpots 각 항목의 reason/waitTime/avgPrice 누락을 기본값으로 채운다. */
+/** 실존 식당/카페 DB에서 이름으로 구글맵 링크/영업시간/대표메뉴를 찾기 위한 조회 테이블 */
+const HIDDEN_SPOT_DB_LOOKUP = new Map<string, { googleMapsUrl: string; hours?: string; menu: string }>([
+  ...danangRestaurants.map(
+    (r): [string, { googleMapsUrl: string; hours?: string; menu: string }] => [
+      r.name,
+      { googleMapsUrl: r.googleMapsUrl, hours: `${r.openHour}~${r.closeHour}`, menu: r.signature },
+    ]
+  ),
+  ...danangCafes.map(
+    (c): [string, { googleMapsUrl: string; hours?: string; menu: string }] => [
+      c.name,
+      { googleMapsUrl: c.googleMapsUrl, menu: c.highlight },
+    ]
+  ),
+]);
+
+/**
+ * hiddenSpots 각 항목의 reason/waitTime/avgPrice 누락을 기본값으로 채우고,
+ * 실존 식당/카페 DB와 이름이 매칭되면 구글맵 링크/영업시간/대표메뉴를 함께 채운다.
+ */
 function normalizeRecommendedSpots(raw: unknown): RecommendedSpot[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((entry) => {
     const spot = entry as Partial<RecommendedSpot>;
+    const dbMatch = HIDDEN_SPOT_DB_LOOKUP.get(spot.name ?? "");
     return {
       name: spot.name ?? "",
       nameEn: spot.nameEn ?? "",
@@ -263,6 +284,9 @@ function normalizeRecommendedSpots(raw: unknown): RecommendedSpot[] {
       reason: spot.reason ?? "",
       waitTime: spot.waitTime ?? "정보 없음",
       avgPrice: spot.avgPrice ?? 0,
+      googleMapsUrl: dbMatch?.googleMapsUrl,
+      hours: dbMatch?.hours,
+      menu: dbMatch?.menu,
     };
   });
 }
@@ -327,9 +351,13 @@ export async function generateTravelPlan(input: TravelInput): Promise<TravelResu
   }
 
   const rawDays = (parsed.days as TravelResult["days"]) ?? [];
+  // AI가 생성한 desc의 "다낭의 대표적인 ~" 같은 상투적 문구를 실존 장소 DB의 고유
+  // 설명으로 교체한다. 이후 단계가 추가하는 항목은 이미 DB 필드로 desc를 직접
+  // 구성하므로, 중복 처리를 피하기 위해 AI 원본 응답에 가장 먼저 적용한다.
+  const daysWithDbDesc = applyDbDescriptions(rawDays);
   // 시스템 프롬프트의 "하루 3끼 필수" 지시만으로는 실제로 지켜지지 않는 경우가 관측되어,
   // 빠진 끼니를 코드에서 결정론적으로 채워 넣는다 (재시도 대신 보정).
-  const daysWithMeals = ensureDailyMeals(rawDays, input.arrivalTime, input.departureTime);
+  const daysWithMeals = ensureDailyMeals(daysWithDbDesc, input.arrivalTime, input.departureTime);
   // 동선 규칙(호이안 전일 배정/숙소 스타일별 동선/이동거리 최적화)도 프롬프트만으로는
   // 실제로 지켜지지 않는 경우가 관측되어, 같은 방식으로 코드에서 후보정한다.
   const routedDays = enforceRouteRules(daysWithMeals, hotel.style);
@@ -354,7 +382,8 @@ export async function generateTravelPlan(input: TravelInput): Promise<TravelResu
     days,
     budget,
     hiddenSpots: normalizeRecommendedSpots(parsed.hiddenSpots),
-    checklist: normalizeChecklist(parsed.checklist),
+    // interests(해변/술/사진/액티비티)에 맞는 준비물을 AI 체크리스트에 결정론적으로 추가한다.
+    checklist: enrichChecklistWithInterests(normalizeChecklist(parsed.checklist), input.interests),
     hotel,
     aiAnalysis: normalizeAIAnalysis(parsed.aiAnalysis),
   };

@@ -715,6 +715,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 88,
     crowdLevel: "보통",
     entranceFee: "무료",
+    highlight: "다낭 시내에서 가장 접근성 좋은 백사장, 서핑 강습과 해산물 포장마차가 해변을 따라 늘어서 있다",
     googleMapsUrl: mapsUrl("My Khe Beach, Da Nang, Vietnam"),
   },
   {
@@ -727,6 +728,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 82,
     crowdLevel: "보통",
     entranceFee: "40,000동 (엘리베이터 별도 15,000동)",
+    highlight: "다섯 개의 대리석 봉우리 안 동굴 사원과 석굴 법당을 오르내리며 탐험하는 곳",
     googleMapsUrl: mapsUrl("Marble Mountains, Da Nang, Vietnam"),
   },
   {
@@ -739,6 +741,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 95,
     crowdLevel: "높음",
     entranceFee: "약 850,000동 (케이블카 왕복 포함)",
+    highlight: "거대한 두 손 조각상이 다리를 떠받치는 골든브릿지와 프랑스풍 빌리지, 세계 최장급 케이블카로 오른다",
     googleMapsUrl: mapsUrl("Ba Na Hills Golden Bridge, Da Nang, Vietnam"),
   },
   {
@@ -751,6 +754,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 90,
     crowdLevel: "높음",
     entranceFee: "무료",
+    highlight: "666m 길이의 용 모양 다리로, 주말 밤이면 용 머리에서 불과 물을 내뿜는 쇼가 열린다",
     googleMapsUrl: mapsUrl("Dragon Bridge, Da Nang, Vietnam"),
   },
   {
@@ -763,6 +767,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 97,
     crowdLevel: "높음",
     entranceFee: "120,000동 (헤리티지 입장권, 유적 다수 포함)",
+    highlight: "노란 벽과 등불 처마가 이어지는 유네스코 세계문화유산 옛 거리, 일몰 후 등불 점등이 절정",
     googleMapsUrl: mapsUrl("Hoi An Ancient Town, Quang Nam, Vietnam"),
   },
   {
@@ -775,6 +780,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 70,
     crowdLevel: "보통",
     entranceFee: "무료",
+    highlight: "한강 바로 옆 3층 재래시장, 건어물·라탄공예품부터 길거리 간식까지 한 자리에서 흥정할 수 있다",
     googleMapsUrl: mapsUrl("Han Market, Da Nang, Vietnam"),
   },
   {
@@ -787,6 +793,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 85,
     crowdLevel: "보통",
     entranceFee: "무료",
+    highlight: "선짜반도 언덕 위 67m 높이 관음상이 바다를 내려다보는 다낭 최대 규모 사찰",
     googleMapsUrl: mapsUrl("Linh Ung Pagoda, Son Tra, Da Nang, Vietnam"),
   },
   {
@@ -799,6 +806,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 89,
     crowdLevel: "낮음",
     entranceFee: "무료",
+    highlight: "몽키마운틴이라 불리는 원시림 반도, 야생 원숭이와 깎아지른 해안 절벽뷰를 함께 볼 수 있다",
     googleMapsUrl: mapsUrl("Son Tra Peninsula, Da Nang, Vietnam"),
   },
   {
@@ -811,6 +819,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 91,
     crowdLevel: "낮음",
     entranceFee: "무료",
+    highlight: "호이안 근교의 한적한 백사장, 미케비치보다 파도가 잔잔하고 해변 레스토랑 선베드가 여유롭다",
     googleMapsUrl: mapsUrl("An Bang Beach, Hoi An, Vietnam"),
   },
   {
@@ -823,6 +832,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 65,
     crowdLevel: "낮음",
     entranceFee: "60,000동",
+    highlight: "참파왕국 시대 사암 조각상 300여 점을 모은 프랑스 식민지풍 건축의 박물관",
     googleMapsUrl: mapsUrl("Museum of Cham Sculpture, Da Nang, Vietnam"),
   },
   {
@@ -835,6 +845,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 80,
     crowdLevel: "보통",
     entranceFee: "무료 (외관)",
+    highlight: "1923년 지어진 분홍빛 고딕 성당, 첨탑 위 닭 모양 풍향계가 랜드마크",
     googleMapsUrl: mapsUrl("Da Nang Cathedral, Da Nang, Vietnam"),
   },
   {
@@ -847,6 +858,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 68,
     crowdLevel: "보통",
     entranceFee: "무료",
+    highlight: "다낭 시내 중심 재래시장, 저렴한 로컬 간식과 의류·잡화 도매 상가가 밀집해 있다",
     googleMapsUrl: mapsUrl("Con Market, Da Nang, Vietnam"),
   },
   {
@@ -859,6 +871,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 93,
     crowdLevel: "높음",
     entranceFee: "무료",
+    highlight: "투본강변을 따라 홍등이 늘어선 야시장, 소원등 띄우기와 길거리 포장마차가 명물",
     googleMapsUrl: mapsUrl("Hoi An Night Market, Quang Nam, Vietnam"),
   },
   {
@@ -871,6 +884,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 94,
     crowdLevel: "보통",
     entranceFee: "약 150,000동 (바구니배 기준)",
+    highlight: "바구니배(뚱차이)나 유람선을 타고 투본강 위에서 소원등을 띄우며 호이안 야경을 즐긴다",
     googleMapsUrl: mapsUrl("Thu Bon River Cruise, Hoi An, Vietnam"),
   },
   {
@@ -883,6 +897,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 96,
     crowdLevel: "낮음",
     entranceFee: "무료",
+    highlight: "다낭과 후에를 잇는 해발 500m 고갯길, 구불구불한 도로에서 내려다보는 랑코만 전망이 명물",
     googleMapsUrl: mapsUrl("Hai Van Pass, Da Nang, Vietnam"),
   },
   {
@@ -895,6 +910,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 80,
     crowdLevel: "높음",
     entranceFee: "성인 250,000동 (올인원 티켓 기준)",
+    highlight: "롤러코스터 등 놀이기구와 대관람차 '선휠'을 갖춘 테마파크, 야간 조명 퍼레이드가 볼거리",
     googleMapsUrl: mapsUrl("Sun World Danang Wonders Asia Park, Da Nang, Vietnam"),
   },
   {
@@ -907,6 +923,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 55,
     crowdLevel: "낮음",
     entranceFee: "20,000동",
+    highlight: "다낭의 역사와 전쟁 유물을 전시한 실내 박물관, 에어컨이 나와 더위·우천을 피하기 좋다",
     googleMapsUrl: mapsUrl("Da Nang Museum, Da Nang, Vietnam"),
   },
   {
@@ -919,6 +936,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 60,
     crowdLevel: "보통",
     entranceFee: "무료",
+    highlight: "오행산 자락의 대리석 공예 마을, 장인들이 실제로 조각하는 공방과 판매장이 늘어서 있다",
     googleMapsUrl: mapsUrl("Non Nuoc Stone Carving Village, Da Nang, Vietnam"),
   },
   {
@@ -931,6 +949,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 50,
     crowdLevel: "낮음",
     entranceFee: "무료",
+    highlight: "200년 넘은 목조 가옥과 전통 시장이 남아 있는 다낭 근교의 옛 농촌 마을",
     googleMapsUrl: mapsUrl("Tuy Loan Ancient Village, Da Nang, Vietnam"),
   },
   {
@@ -943,6 +962,7 @@ export const danangAttractions: Attraction[] = [
     photoScore: 75,
     crowdLevel: "보통",
     entranceFee: "무료",
+    highlight: "한강변 하트 모양 자물쇠 다리와 잉어가 용으로 변하는 조각상, 저녁 조명이 켜지면 커플 포토스팟",
     googleMapsUrl: mapsUrl("Love Bridge Cau Tinh Yeu, Da Nang, Vietnam"),
   },
 ];

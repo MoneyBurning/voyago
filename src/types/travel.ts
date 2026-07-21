@@ -90,6 +90,10 @@ export interface FlightBudgetItem {
   total: number;
   /** 1인당 (만원) */
   perPerson: number;
+  /** 같은 시즌 내 최저 예상 총액 (만원) */
+  min: number;
+  /** 같은 시즌 내 최고 예상 총액 (만원) */
+  max: number;
   note: string;
 }
 
@@ -100,6 +104,10 @@ export interface HotelBudgetItem {
   /** 1박 가격 (만원) */
   perNight: number;
   nights: number;
+  /** 같은 스타일 내 최저 예상 총액 (만원) */
+  min: number;
+  /** 같은 스타일 내 최고 예상 총액 (만원) */
+  max: number;
   note: string;
 }
 
@@ -124,6 +132,10 @@ export interface TransportBudgetItem {
   total: number;
   /** 1인당 (만원) */
   perPerson: number;
+  /** 최저 예상 총액 (만원, 할증 없는 기준) */
+  min: number;
+  /** 최고 예상 총액 (만원, 피크타임 할증 포함) */
+  max: number;
   note: string;
   tip: string;
 }
@@ -134,6 +146,10 @@ export interface AlcoholBudgetItem {
   total: number;
   /** interests에 술/펍이 포함되어 반영되었는지 여부 */
   included: boolean;
+  /** 최저 예상 총액 (만원, 비어호이 위주) */
+  min: number;
+  /** 최고 예상 총액 (만원, 펍 칵테일 위주) */
+  max: number;
   note: string;
 }
 
@@ -143,6 +159,10 @@ export interface EntranceBudgetItem {
   total: number;
   /** 포함된 입장료 항목 이름 목록 */
   items: string[];
+  /** 최저 예상 총액 (만원) */
+  min: number;
+  /** 최고 예상 총액 (만원, 성수기 할증 등 반영) */
+  max: number;
   note: string;
 }
 
@@ -151,6 +171,10 @@ export interface EmergencyBudgetItem {
   /** 총액 (만원) */
   total: number;
   rate: string;
+  /** 권장 최저 비상금 (만원, 지출의 5%) */
+  min: number;
+  /** 권장 최고 비상금 (만원, 지출의 15%) */
+  max: number;
 }
 
 /** 사용자가 선택한 예산 구간 대비 실제 계산된 총 지출 상태 */
@@ -254,6 +278,8 @@ export interface Attraction {
   crowdLevel: "낮음" | "보통" | "높음";
   /** 입장료 (VND, 무료인 경우 "무료") */
   entranceFee: string;
+  /** 이 관광지만의 고유 특징 한 줄 (일정 카드 desc에 사용, 뻔한 상투구 금지) */
+  highlight: string;
   googleMapsUrl: string;
 }
 
@@ -265,6 +291,12 @@ export interface RecommendedSpot extends HiddenSpot {
   waitTime: string;
   /** 평균 가격 (만원 단위, 1인 기준) */
   avgPrice: number;
+  /** 실존 장소 DB와 이름이 매칭된 경우에만 채워지는 구글맵 링크 */
+  googleMapsUrl?: string;
+  /** 영업시간 (예: "06:30~21:00", 식당 DB에만 존재) */
+  hours?: string;
+  /** 대표 메뉴 또는 특징 한 줄 */
+  menu?: string;
 }
 
 /** 여행 준비물 체크리스트 항목 */

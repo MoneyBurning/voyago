@@ -134,11 +134,20 @@ export function resolveHotel(
   };
 }
 
+/** 같은 스타일 내 실제 danangHotels DB 최저가/최고가 (만원, 1박 기준) — 총액 계산에는 쓰이지 않고 범위 표시 전용 */
+function hotelNightlyPriceRangeManwon(hotelStyle: HotelStyle): { min: number; max: number } {
+  const prices = danangHotels.filter((h) => h.style === hotelStyle).map((h) => h.pricePerNight);
+  return { min: Math.min(...prices), max: Math.max(...prices) };
+}
+
 function calculateHotelItem(hotel: HotelRecommendation, nights: number): HotelBudgetItem {
+  const range = hotelNightlyPriceRangeManwon(hotel.style);
   return {
     total: hotel.totalCost,
     perNight: hotel.pricePerNight,
     nights,
+    min: range.min * nights,
+    max: range.max * nights,
     note: `${hotel.name} ${nights}박 기준 (2026년 아고다)`,
   };
 }
@@ -150,10 +159,11 @@ type FlightSeason = "peak" | "shoulder" | "off";
 const PEAK_MONTHS = [1, 7, 8];
 const SHOULDER_MONTHS = [5, 6, 9, 10];
 
-const FLIGHT_PRICE_WON: Record<FlightSeason, number> = {
-  peak: 450000,
-  shoulder: 330000,
-  off: 250000,
+/** 시즌별 1인 왕복 항공권 최저/평균/최고가 (원, 2026년 스카이스캐너 기준 — 항공사/특가에 따른 변동폭 반영) */
+const FLIGHT_PRICE_RANGE_WON: Record<FlightSeason, { min: number; avg: number; max: number }> = {
+  peak: { min: 380000, avg: 450000, max: 550000 },
+  shoulder: { min: 280000, avg: 330000, max: 400000 },
+  off: { min: 200000, avg: 250000, max: 320000 },
 };
 
 const FLIGHT_SEASON_LABEL: Record<FlightSeason, string> = {
@@ -170,10 +180,12 @@ function getFlightSeason(travelMonth: number): FlightSeason {
 
 function calculateFlightItem(travelMonth: number, headcount: number): FlightBudgetItem {
   const season = getFlightSeason(travelMonth);
-  const perPersonWon = FLIGHT_PRICE_WON[season];
+  const range = FLIGHT_PRICE_RANGE_WON[season];
   return {
-    total: manwon(perPersonWon * headcount),
-    perPerson: manwon(perPersonWon),
+    total: manwon(range.avg * headcount),
+    perPerson: manwon(range.avg),
+    min: manwon(range.min * headcount),
+    max: manwon(range.max * headcount),
     note: `인천↔다낭 왕복 이코노미 ${FLIGHT_SEASON_LABEL[season]} 기준 (2026년 스카이스캐너)`,
   };
 }
@@ -266,6 +278,10 @@ function getGrabShareFactor(headcount: number): number {
   return 2.0;
 }
 
+/** 평상시 대비 그랩 요금 변동폭 (심야/우천 할증 ~ 도보 병행 절약) */
+const TRANSPORT_MIN_FACTOR = 0.85;
+const TRANSPORT_MAX_FACTOR = 1.3;
+
 function calculateTransportItem(
   hotelStyle: HotelStyle,
   days: number,
@@ -280,6 +296,8 @@ function calculateTransportItem(
   return {
     total: manwon(totalWon),
     perPerson: manwon(totalWon / headcount),
+    min: manwon(totalWon * TRANSPORT_MIN_FACTOR),
+    max: manwon(totalWon * TRANSPORT_MAX_FACTOR),
     note: hasBanaHills
       ? "그랩 기준, 바나힐 프라이빗카 추가 (2026년 DanangPick/트립스토어)"
       : "그랩 기준 (2026년 DanangPick/트립스토어)",
@@ -290,16 +308,22 @@ function calculateTransportItem(
 // ---------- 음주비 ----------
 
 const ALCOHOL_PER_PERSON_PER_DAY_WON = 25000;
+/** 비어호이(2,500원) 위주로만 마셨을 때의 1인 1일 최저 지출 */
+const ALCOHOL_MIN_PER_PERSON_PER_DAY_WON = 10000;
+/** 펍 칵테일(12,000원) 위주로만 마셨을 때의 1인 1일 최고 지출 */
+const ALCOHOL_MAX_PER_PERSON_PER_DAY_WON = 50000;
 
 function calculateAlcoholItem(interests: string[], days: number, headcount: number): AlcoholBudgetItem {
   const included = interests.includes("술") || interests.includes("펍");
   if (!included) {
-    return { total: 0, included: false, note: "선택한 관심사에 음주가 포함되지 않음" };
+    return { total: 0, included: false, min: 0, max: 0, note: "선택한 관심사에 음주가 포함되지 않음" };
   }
   const totalWon = ALCOHOL_PER_PERSON_PER_DAY_WON * headcount * days;
   return {
     total: manwon(totalWon),
     included: true,
+    min: manwon(ALCOHOL_MIN_PER_PERSON_PER_DAY_WON * headcount * days),
+    max: manwon(ALCOHOL_MAX_PER_PERSON_PER_DAY_WON * headcount * days),
     note: "비어호이(2,500원)+333맥주(3,500원)+펍 칵테일(12,000원) 등 1인 1일 평균 기준",
   };
 }
@@ -335,6 +359,10 @@ const ENTRANCE_FEES: EntranceFee[] = [
   },
 ];
 
+/** 콤보 티켓 할인(최저)~성수기 현장가 할증(최고) 반영 변동폭 */
+const ENTRANCE_MIN_FACTOR = 0.9;
+const ENTRANCE_MAX_FACTOR = 1.15;
+
 function calculateEntranceItem(interests: string[], hotelStyle: string, headcount: number): EntranceBudgetItem {
   const applied = ENTRANCE_FEES.filter((fee) => fee.applies(interests, hotelStyle));
   const totalWon = applied.reduce((sum, fee) => sum + fee.perPersonWon, 0) * headcount;
@@ -342,6 +370,8 @@ function calculateEntranceItem(interests: string[], hotelStyle: string, headcoun
   return {
     total: manwon(totalWon),
     items: applied.map((fee) => fee.label),
+    min: manwon(totalWon * ENTRANCE_MIN_FACTOR),
+    max: manwon(totalWon * ENTRANCE_MAX_FACTOR),
     note:
       applied.length > 0
         ? `${applied.map((fee) => fee.label).join(", ")} 입장료 포함 (2026년 현지 기준)`
@@ -352,7 +382,12 @@ function calculateEntranceItem(interests: string[], hotelStyle: string, headcoun
 // ---------- 비상금 ----------
 
 function calculateEmergencyItem(subtotalManwon: number): EmergencyBudgetItem {
-  return { total: Math.round(subtotalManwon * 0.1), rate: "10%" };
+  return {
+    total: Math.round(subtotalManwon * 0.1),
+    rate: "10%",
+    min: Math.round(subtotalManwon * 0.05),
+    max: Math.round(subtotalManwon * 0.15),
+  };
 }
 
 // ---------- 전체 계산 ----------

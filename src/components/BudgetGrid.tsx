@@ -7,6 +7,16 @@ interface BudgetGridProps {
   budget: BudgetCalculation;
 }
 
+/** "44만원 (최소 30만 ~ 최대 65만원)" 형태로 총액 옆에 범위를 인라인 표기 */
+function AmountWithRange({ total, min, max }: { total: number; min: number; max: number }) {
+  return (
+    <p className="mt-1 font-mono text-xl text-white">
+      {total}만원
+      {min < max ? <span className="ml-1 font-sans text-xs text-subtext">(최소 {min}만 ~ 최대 {max}만원)</span> : null}
+    </p>
+  );
+}
+
 function Bar({ percent, filled }: { percent: number; filled: boolean }) {
   return (
     <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
@@ -53,7 +63,7 @@ export default function BudgetGrid({ budget }: BudgetGridProps) {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
           <p className="text-sm text-subtext">항공</p>
-          <p className="mt-1 font-mono text-xl text-white">{budget.flight.total}만원</p>
+          <AmountWithRange total={budget.flight.total} min={budget.flight.min} max={budget.flight.max} />
           <p className="text-xs text-subtext">1인당 {budget.flight.perPerson}만원</p>
           <Bar percent={pct(budget.flight.total)} filled={filled} />
           <p className="mt-2 text-xs text-subtext">{budget.flight.note}</p>
@@ -61,7 +71,7 @@ export default function BudgetGrid({ budget }: BudgetGridProps) {
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
           <p className="text-sm text-subtext">숙소</p>
-          <p className="mt-1 font-mono text-xl text-white">{budget.hotel.total}만원</p>
+          <AmountWithRange total={budget.hotel.total} min={budget.hotel.min} max={budget.hotel.max} />
           <p className="text-xs text-subtext">
             1박 {budget.hotel.perNight}만원 × {budget.hotel.nights}박
           </p>
@@ -71,18 +81,15 @@ export default function BudgetGrid({ budget }: BudgetGridProps) {
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
           <p className="text-sm text-subtext">식비</p>
-          <p className="mt-1 font-mono text-xl text-white">{budget.food.total}만원</p>
+          <AmountWithRange total={budget.food.total} min={budget.food.min} max={budget.food.max} />
           <p className="text-xs text-subtext">1인당 {budget.food.perPerson}만원</p>
           <Bar percent={pct(budget.food.total)} filled={filled} />
-          <p className="mt-2 text-xs text-gold">
-            최소 {budget.food.min}만 ~ 최대 {budget.food.max}만원
-          </p>
-          <p className="mt-1 text-xs text-subtext">{budget.food.note}</p>
+          <p className="mt-2 text-xs text-subtext">{budget.food.note}</p>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
           <p className="text-sm text-subtext">교통</p>
-          <p className="mt-1 font-mono text-xl text-white">{budget.transport.total}만원</p>
+          <AmountWithRange total={budget.transport.total} min={budget.transport.min} max={budget.transport.max} />
           <p className="text-xs text-subtext">1인당 {budget.transport.perPerson}만원</p>
           <Bar percent={pct(budget.transport.total)} filled={filled} />
           <p className="mt-2 text-xs text-subtext">{budget.transport.note}</p>
@@ -92,7 +99,7 @@ export default function BudgetGrid({ budget }: BudgetGridProps) {
         {budget.alcohol.included ? (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-sm text-subtext">음주비</p>
-            <p className="mt-1 font-mono text-xl text-white">{budget.alcohol.total}만원</p>
+            <AmountWithRange total={budget.alcohol.total} min={budget.alcohol.min} max={budget.alcohol.max} />
             <Bar percent={pct(budget.alcohol.total)} filled={filled} />
             <p className="mt-2 text-xs text-subtext">{budget.alcohol.note}</p>
           </div>
@@ -101,7 +108,7 @@ export default function BudgetGrid({ budget }: BudgetGridProps) {
         {budget.entrance.items.length > 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-sm text-subtext">입장료</p>
-            <p className="mt-1 font-mono text-xl text-white">{budget.entrance.total}만원</p>
+            <AmountWithRange total={budget.entrance.total} min={budget.entrance.min} max={budget.entrance.max} />
             <Bar percent={pct(budget.entrance.total)} filled={filled} />
             <p className="mt-2 text-xs text-subtext">{budget.entrance.note}</p>
           </div>
@@ -109,7 +116,7 @@ export default function BudgetGrid({ budget }: BudgetGridProps) {
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
           <p className="text-sm text-subtext">비상금</p>
-          <p className="mt-1 font-mono text-xl text-white">{budget.emergency.total}만원</p>
+          <AmountWithRange total={budget.emergency.total} min={budget.emergency.min} max={budget.emergency.max} />
           <Bar percent={pct(budget.emergency.total)} filled={filled} />
           <p className="mt-2 text-xs text-subtext">예상 지출의 {budget.emergency.rate}</p>
         </div>

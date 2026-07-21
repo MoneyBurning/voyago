@@ -1,4 +1,4 @@
-import { danangBars, danangCafes, danangHiddenSpots } from "@/data/danang";
+import { danangAttractions, danangBars, danangCafes, danangHiddenSpots, danangRestaurants } from "@/data/danang";
 import type { DaySchedule, Interest, ScheduleItem, TimeOfDay } from "@/types/travel";
 
 /**
@@ -272,6 +272,51 @@ export function ensureNightlifeStops(
     const merged = [...day.items, newItem].sort((a, b) => a.time.localeCompare(b.time));
     return { ...day, items: stabilizeAnchors(merged, day.day === 1, day.day === totalDays) };
   });
+}
+
+/**
+ * AI가 생성한 desc는 "다낭의 대표적인 ~" 같은 상투적 문구를 반복하는 경우가 관측되어,
+ * 실존 장소 DB(관광지/식당/카페/바)에 이름이 정확히 매칭되는 항목은 desc를 DB의
+ * 고유 설명으로 덮어써 균일한 품질을 보장한다. 호텔 이동/공항 이동처럼 실존 장소
+ * DB에 없는 move/rest 항목은 매칭되지 않으므로 원래 desc를 그대로 둔다.
+ */
+function buildDbDescriptionMap(): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const attraction of danangAttractions) {
+    map.set(
+      attraction.name,
+      `${attraction.highlight} (체류 약 ${attraction.stayDuration}분 추천, ${attraction.recommendedTime})`
+    );
+  }
+  for (const restaurant of danangRestaurants) {
+    map.set(restaurant.name, `${restaurant.signature} · ${restaurant.priceRange} · 현지인비율 ${restaurant.localRatio}%`);
+  }
+  for (const cafe of danangCafes) {
+    map.set(cafe.name, `${cafe.highlight} · ${cafe.priceRange}`);
+  }
+  for (const bar of danangBars) {
+    map.set(bar.name, `${bar.highlight} · ${bar.priceRange}`);
+  }
+  return map;
+}
+
+/**
+ * 실존 장소 DB와 이름이 매칭되는 일정 항목의 desc를 DB 고유 설명으로 교체한다.
+ * ensureDailyMeals/ensureCafeBreaks/ensureNightlifeStops가 이후 단계에서 추가하는
+ * 항목은 이미 DB 필드 기반의 desc를 직접 구성하므로, 그 항목들과 중복 처리되지
+ * 않도록 이 함수는 AI 원본 응답(rawDays)에 대해 가장 먼저 적용한다.
+ */
+export function applyDbDescriptions(days: DaySchedule[]): DaySchedule[] {
+  const descMap = buildDbDescriptionMap();
+
+  return days.map((day) => ({
+    ...day,
+    items: day.items.map((item) => {
+      const dbDesc = descMap.get(item.name);
+      if (!dbDesc) return item;
+      return { ...item, desc: dbDesc };
+    }),
+  }));
 }
 
 const CAFE_MORNING_TIME = "10:30";

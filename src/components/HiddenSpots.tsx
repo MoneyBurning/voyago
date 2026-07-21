@@ -1,3 +1,4 @@
+import { ExternalLink } from "lucide-react";
 import type { RecommendedSpot } from "@/types/travel";
 
 interface HiddenSpotsProps {
@@ -28,6 +29,9 @@ export default function HiddenSpots({ spots }: HiddenSpotsProps) {
             <p className="mt-3 text-sm text-subtext">{spot.location}</p>
             <p className="mt-1 text-sm text-white/80">{spot.desc}</p>
 
+            {spot.menu ? <p className="mt-2 text-xs text-white/70">🍽 대표 메뉴 {spot.menu}</p> : null}
+            {spot.hours ? <p className="mt-1 text-xs text-subtext">🕒 영업시간 {spot.hours}</p> : null}
+
             {spot.reason ? (
               <div className="mt-3 rounded-lg border border-gold/20 bg-gold/5 px-3 py-2">
                 <p className="text-xs text-gold">🤖 AI 추천 이유</p>
@@ -39,6 +43,18 @@ export default function HiddenSpots({ spots }: HiddenSpotsProps) {
               <span>⏱ 웨이팅 {spot.waitTime}</span>
               <span>💰 평균 {spot.avgPrice}만원</span>
             </div>
+
+            {spot.googleMapsUrl ? (
+              <a
+                href={spot.googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-gold/30 bg-gold/5 px-3 py-1.5 text-xs text-gold transition-colors hover:bg-gold/15"
+              >
+                <ExternalLink size={12} />
+                구글맵에서 보기
+              </a>
+            ) : null}
           </div>
         ))}
       </div>
