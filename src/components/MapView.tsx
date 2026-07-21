@@ -16,11 +16,27 @@ const goldIcon = L.divIcon({
   iconAnchor: [7, 7],
 });
 
+/**
+ * AI가 생성한 일부 항목의 lat/lng이 누락/손상(NaN, undefined 등)되면 Leaflet이
+ * L.LatLng 생성 중 예외를 던져 지도 전체(모든 핀)가 함께 사라지는 문제가 있었다.
+ * 유효한 좌표를 가진 항목만 걸러내 식당/카페/관광지 핀이 항상 복원되도록 한다.
+ */
+function hasValidCoords(item: ScheduleItem): boolean {
+  return (
+    Number.isFinite(item.lat) &&
+    Number.isFinite(item.lng) &&
+    !(item.lat === 0 && item.lng === 0) &&
+    Math.abs(item.lat) <= 90 &&
+    Math.abs(item.lng) <= 180
+  );
+}
+
 /** 동선을 표시하는 Leaflet 지도 (SSR 비활성화 필수, dynamic import로만 사용) */
 export default function MapView({ items }: MapViewProps) {
-  if (items.length === 0) return null;
+  const validItems = items.filter(hasValidCoords);
+  if (validItems.length === 0) return null;
 
-  const positions: [number, number][] = items.map((item) => [item.lat, item.lng]);
+  const positions: [number, number][] = validItems.map((item) => [item.lat, item.lng]);
 
   return (
     <section>
@@ -37,7 +53,7 @@ export default function MapView({ items }: MapViewProps) {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <Polyline positions={positions} pathOptions={{ color: "#c9933a", weight: 3, opacity: 0.8 }} />
-          {items.map((item, index) => (
+          {validItems.map((item, index) => (
             <Marker key={`${item.name}-${index}`} position={[item.lat, item.lng]} icon={goldIcon}>
               <Popup>{item.name}</Popup>
             </Marker>

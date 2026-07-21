@@ -33,6 +33,7 @@ function isBeachWalkItem(item: ScheduleItem): boolean {
 const MY_KHE_BEACH = danangAttractions.find((a) => a.nameEn === "My Khe Beach");
 
 const HOI_AN_RESTAURANTS = danangRestaurants.filter((r) => isHoiAnCoord(r.lat, r.lng));
+const DANANG_ONLY_RESTAURANTS = danangRestaurants.filter((r) => !isHoiAnCoord(r.lat, r.lng));
 
 /** days[dayIdx]에서 predicate에 맞는 항목을 떼어내 반환 (원본은 그 항목들이 빠진 상태로 남음) */
 function extractItems(days: DaySchedule[], dayIdx: number, predicate: (item: ScheduleItem) => boolean): ScheduleItem[] {
@@ -123,6 +124,43 @@ function fixHoiAnDayMeals(days: DaySchedule[], hoiAnDayIdx: number): void {
       ...item,
       name: replacement.name,
       desc: `${replacement.signature} · ${replacement.priceRange} (호이안 숙박 동선상 호이안에서 마무리)`,
+      lat: replacement.lat,
+      lng: replacement.lng,
+    };
+  });
+}
+
+/**
+ * 바나힐 Day는 다낭↔바나힐 왕복만으로도 하루가 꽉 차는 원거리 일정이라, 호이안
+ * 권역 식당이 끼어들면 동선이 완전히 어긋난다(예: 바나힐 점심이 호이안 주소인
+ * 실존 식당으로 배정되는 버그). 그날의 "eat" 항목 중 호이안 권역인 것을 다낭
+ * (비-호이안) 실존 식당으로 교체한다. hotelStyle과 무관하게 항상 적용한다.
+ */
+function fixBanaHillsDayMeals(days: DaySchedule[], baNaDayIdx: number): void {
+  if (baNaDayIdx === -1 || DANANG_ONLY_RESTAURANTS.length === 0) return;
+  const day = days[baNaDayIdx];
+  const usedNames = new Set(day.items.filter((i) => i.category === "eat").map((i) => i.name));
+
+  let cursor = 0;
+  day.items = day.items.map((item) => {
+    if (item.category !== "eat" || !isHoiAnCoord(item.lat, item.lng)) return item;
+
+    let attempts = 0;
+    while (
+      usedNames.has(DANANG_ONLY_RESTAURANTS[cursor % DANANG_ONLY_RESTAURANTS.length].name) &&
+      attempts < DANANG_ONLY_RESTAURANTS.length
+    ) {
+      cursor++;
+      attempts++;
+    }
+    const replacement = DANANG_ONLY_RESTAURANTS[cursor % DANANG_ONLY_RESTAURANTS.length];
+    usedNames.add(replacement.name);
+    cursor++;
+
+    return {
+      ...item,
+      name: replacement.name,
+      desc: `${replacement.signature} · ${replacement.priceRange} (바나힐 동선상 호이안 대신 다낭 식당으로 대체)`,
       lat: replacement.lat,
       lng: replacement.lng,
     };
@@ -331,10 +369,16 @@ export function enforceRouteRules(rawDays: DaySchedule[], hotelStyle: HotelStyle
   // 규칙 1 — 호이안 관광지를 하루로 몰아 배정 (규칙 2의 hoian Day2~3 선호도 포함)
   const hoiAnDayIdx = consolidateHoiAn(days, hotelStyle, baNaDayIdx);
 
-  // 규칙 1 — 호이안 날에는 다낭 시내로 돌아가는 식사를 넣지 않는다 (hoian 숙소 한정)
-  if (hotelStyle === "hoian") {
-    fixHoiAnDayMeals(days, hoiAnDayIdx);
-  }
+  // 규칙 1 — 호이안 날에는 다낭 시내로 돌아가는 식사를 넣지 않는다. hotelStyle이
+  // "hoian"이 아니어도 AI가 호이안 관광지를 넣으면 호이안 Day 자체는 똑같이
+  // 생기므로, 이전에는 hotelStyle === "hoian"일 때만 적용해 다른 스타일에서
+  // 다낭 식당(호이안 권역 밖 주소)이 호이안 Day에 남는 버그가 있었다 — 스타일과
+  // 무관하게 항상 적용한다.
+  fixHoiAnDayMeals(days, hoiAnDayIdx);
+
+  // 규칙 2(beach)/규칙 3 — 바나힐 날에는 호이안 권역 식당이 끼어들지 않게 한다.
+  // 바나힐↔호이안은 정반대 방향이라 같은 날 섞이면 동선이 완전히 어긋난다.
+  fixBanaHillsDayMeals(days, baNaDayIdx);
 
   const specialIdxs = [hoiAnDayIdx, baNaDayIdx].filter((idx) => idx !== -1);
 

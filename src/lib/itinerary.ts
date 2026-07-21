@@ -1,5 +1,5 @@
 import { danangAttractions, danangBars, danangCafes, danangHiddenSpots, danangRestaurants } from "@/data/danang";
-import type { DaySchedule, Interest, ScheduleItem, TimeOfDay } from "@/types/travel";
+import type { DaySchedule, HotelRecommendation, Interest, ScheduleItem, TimeOfDay } from "@/types/travel";
 
 /**
  * Groq 시스템 프롬프트에 "하루 3끼 필수, 빠지면 스스로 검토 후 채워서 출력" 지시를
@@ -77,6 +77,29 @@ function isSlotRequired(
 
 export function isAirportItem(item: ScheduleItem): boolean {
   return item.name.includes("공항") || item.desc.includes("공항");
+}
+
+/** 인천국제공항 (departure 도시가 서울이 아니어도, 이 앱의 "공항" 항목이 인천을 지칭하는 경우의 좌표) */
+const INCHEON_AIRPORT_COORD = { lat: 37.4602, lng: 126.4407 };
+/** 다낭 국제공항 — 이 앱의 "공항" 항목은 대부분 이쪽(도착/출발 모두 다낭에서 일어남) */
+const DANANG_AIRPORT_COORD = { lat: 16.0544, lng: 108.2022 };
+
+/**
+ * AI가 "공항" 항목의 lat/lng을 부정확하게(또는 임의로) 채워 넣는 경우가 관측되어,
+ * 실제 공항 좌표로 결정론적으로 덮어쓴다. desc/name에 "인천"이 언급된 항목만
+ * 인천공항 좌표를 쓰고, 그 외 모든 공항 항목(이 앱의 절대다수)은 다낭국제공항
+ * 좌표를 쓴다 — 이 앱의 일정은 전부 다낭 현지에서 벌어지는 이동이기 때문이다.
+ */
+export function applyAirportCoords(days: DaySchedule[]): DaySchedule[] {
+  return days.map((day) => ({
+    ...day,
+    items: day.items.map((item) => {
+      if (!isAirportItem(item)) return item;
+      const isIncheon = item.name.includes("인천") || item.desc.includes("인천");
+      const coord = isIncheon ? INCHEON_AIRPORT_COORD : DANANG_AIRPORT_COORD;
+      return { ...item, lat: coord.lat, lng: coord.lng };
+    }),
+  }));
 }
 
 export function isHotelReturnItem(item: ScheduleItem): boolean {
@@ -384,4 +407,141 @@ export function ensureCafeBreaks(
     const merged = [...day.items, newItem].sort((a, b) => a.time.localeCompare(b.time));
     return { ...day, items: stabilizeAnchors(merged, day.day === 1, day.day === totalDays) };
   });
+}
+
+/**
+ * 실측 결과에서 반복 관측된 일정 버그(앵커 시각 충돌/역순, 이름 오탈자, Day 1
+ * 체크인 누락 등)는 ensureDailyMeals/enforceRouteRules/ensureNightlifeStops 등
+ * 개별 단계가 각자 최선을 다해도 마지막에 종합적으로 한 번 더 강제하지 않으면
+ * 재발한다. 이 함수는 전체 파이프라인의 마지막 단계로, 프롬프트 지시에 기대지
+ * 않고 아래 불변식을 100% 코드로 강제한다:
+ *
+ * - 앵커 위치: 첫 항목(Day 1은 공항 도착 / 그 외는 호텔에서 출발), 마지막 항목
+ *   (마지막 날은 공항 이동 / Day 1은 호텔 체크인 / 그 외는 호텔로 복귀)은 항상
+ *   그 자리에 고정하고, 나머지 항목은 그 사이에 시간순으로 배치한다.
+ * - 비-Day1의 "호텔에서 출발"은 항상 08:00으로 고정한다.
+ * - 앵커와 일반 항목, 일반 항목끼리 모두 최소 30분 간격을 강제한다(동시각 금지).
+ *   마지막 앵커(호텔 복귀/공항 이동)의 시각이 마지막 일반 항목보다 이르면
+ *   그 뒤로 밀어 순서가 항상 시간순과 위치 모두 일치하도록 만든다.
+ * - 앵커가 통째로 누락된 경우(Day 1 체크인, 중간 날 호텔 복귀, 마지막 날 공항
+ *   이동) 실제 숙소/공항 좌표로 새 항목을 만들어 채운다.
+ * - "-vespa 투어"처럼 선행 기호/영문이 섞인 이름을 정리한다.
+ */
+
+/** 앵커·일반 항목 사이 최소 간격 (분) — 동일 시각/과밀 배치 금지 */
+const MIN_ITEM_GAP_MIN = 30;
+/** 비-Day1 날짜의 "호텔에서 출발" 앵커 고정 시각 */
+const HOTEL_DEPARTURE_TIME = "08:00";
+
+function minutesToTime(minutes: number): string {
+  const clamped = Math.max(0, Math.min(23 * 60 + 59, minutes));
+  const h = Math.floor(clamped / 60);
+  const m = clamped % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function isHotelDepartureItem(item: ScheduleItem): boolean {
+  return item.category === "move" && (item.name.includes("출발") || item.desc.includes("호텔에서"));
+}
+
+function isHotelCheckinItem(item: ScheduleItem): boolean {
+  return item.name.includes("체크인") || item.desc.includes("체크인");
+}
+
+/** 알려진 영문/기호 섞임 오류를 정리 (예: "-vespa 투어" → "베스파 투어") */
+const NAME_TRANSLITERATION_FIXES: [RegExp, string][] = [[/vespa/gi, "베스파"]];
+
+function sanitizeItemName(name: string): string {
+  let cleaned = name.replace(/^[\s\-•·*]+/, "").trim();
+  for (const [pattern, replacement] of NAME_TRANSLITERATION_FIXES) {
+    cleaned = cleaned.replace(pattern, replacement);
+  }
+  return cleaned;
+}
+
+type AnchorSeed = Pick<HotelRecommendation, "name" | "lat" | "lng">;
+
+/** 파이프라인 마지막 단계 — 위 docblock의 불변식을 하루치 items에 적용한다. */
+function normalizeDaySchedule(
+  rawItems: ScheduleItem[],
+  isFirstDay: boolean,
+  isLastDay: boolean,
+  hotel: AnchorSeed
+): ScheduleItem[] {
+  const items = rawItems.map((item) => ({ ...item, name: sanitizeItemName(item.name) }));
+
+  const frontFinder = isFirstDay ? isAirportItem : isHotelDepartureItem;
+  const backFinder = isLastDay ? isAirportItem : isFirstDay ? isHotelCheckinItem : isHotelReturnItem;
+
+  const frontAnchor = items.find(frontFinder) ?? null;
+  let backAnchor = items.find((item) => item !== frontAnchor && backFinder(item)) ?? null;
+
+  if (!isFirstDay && frontAnchor) {
+    frontAnchor.time = HOTEL_DEPARTURE_TIME;
+  }
+
+  const middleItems = items.filter((item) => item !== frontAnchor && item !== backAnchor);
+  middleItems.sort((a, b) => a.time.localeCompare(b.time));
+
+  let cursor = frontAnchor ? timeToMinutes(frontAnchor.time) + MIN_ITEM_GAP_MIN : -Infinity;
+  for (const item of middleItems) {
+    if (cursor !== -Infinity && timeToMinutes(item.time) < cursor) {
+      item.time = minutesToTime(cursor);
+    }
+    cursor = timeToMinutes(item.time) + MIN_ITEM_GAP_MIN;
+  }
+
+  if (backAnchor) {
+    if (cursor !== -Infinity && timeToMinutes(backAnchor.time) < cursor) {
+      backAnchor.time = minutesToTime(cursor);
+    }
+  } else {
+    const fallbackMinutes = cursor === -Infinity ? timeToMinutes(isLastDay ? "11:00" : "20:00") : cursor;
+    if (isFirstDay && !isLastDay) {
+      backAnchor = {
+        time: minutesToTime(fallbackMinutes),
+        name: "호텔 체크인",
+        desc: `${hotel.name} 체크인, 프론트에서 여권 제시 후 객실 배정`,
+        category: "rest",
+        badge: "휴식",
+        lat: hotel.lat,
+        lng: hotel.lng,
+      };
+    } else if (isLastDay) {
+      backAnchor = {
+        time: minutesToTime(fallbackMinutes),
+        name: "다낭국제공항으로 이동",
+        desc: "호텔에서 그랩으로 공항 이동, 출국 수속",
+        category: "move",
+        badge: "이동",
+        lat: DANANG_AIRPORT_COORD.lat,
+        lng: DANANG_AIRPORT_COORD.lng,
+      };
+    } else {
+      backAnchor = {
+        time: minutesToTime(fallbackMinutes),
+        name: "호텔로 복귀",
+        desc: `${hotel.name}로 이동, 하루 일정 마무리`,
+        category: "rest",
+        badge: "휴식",
+        lat: hotel.lat,
+        lng: hotel.lng,
+      };
+    }
+  }
+
+  return [...(frontAnchor ? [frontAnchor] : []), ...middleItems, backAnchor];
+}
+
+/**
+ * enforceScheduleInvariants — 전체 파이프라인의 마지막 단계로 호출한다. 프롬프트나
+ * 이전 단계가 무엇을 했든 상관없이, 매 요청마다 시간 정렬/간격/앵커 위치/누락
+ * 앵커/이름 오탈자를 100% 결정론적으로 재보정한다.
+ */
+export function enforceScheduleInvariants(days: DaySchedule[], hotel: AnchorSeed): DaySchedule[] {
+  const totalDays = days.length;
+  return days.map((day) => ({
+    ...day,
+    items: normalizeDaySchedule(day.items, day.day === 1, day.day === totalDays, hotel),
+  }));
 }

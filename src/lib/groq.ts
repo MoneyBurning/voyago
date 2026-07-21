@@ -2,7 +2,14 @@ import Groq, { APIConnectionTimeoutError, RateLimitError } from "groq-sdk";
 import { danangAttractions, danangCafes, danangRestaurants } from "@/data/danang";
 import { calculateBudget, getNights, resolveHotel } from "@/lib/budget";
 import { enrichChecklistWithInterests } from "@/lib/checklist";
-import { applyDbDescriptions, ensureCafeBreaks, ensureDailyMeals, ensureNightlifeStops } from "@/lib/itinerary";
+import {
+  applyAirportCoords,
+  applyDbDescriptions,
+  ensureCafeBreaks,
+  ensureDailyMeals,
+  ensureNightlifeStops,
+  enforceScheduleInvariants,
+} from "@/lib/itinerary";
 import { enforceRouteRules } from "@/lib/routing";
 import type {
   AIAnalysis,
@@ -355,16 +362,23 @@ export async function generateTravelPlan(input: TravelInput): Promise<TravelResu
   // 설명으로 교체한다. 이후 단계가 추가하는 항목은 이미 DB 필드로 desc를 직접
   // 구성하므로, 중복 처리를 피하기 위해 AI 원본 응답에 가장 먼저 적용한다.
   const daysWithDbDesc = applyDbDescriptions(rawDays);
+  // AI가 "공항" 항목의 좌표를 부정확하게 채우는 경우가 관측되어(지도 핀이 엉뚱한
+  // 위치로 튀는 원인), 실제 공항 좌표로 결정론적으로 덮어쓴다.
+  const daysWithAirportCoords = applyAirportCoords(daysWithDbDesc);
   // 시스템 프롬프트의 "하루 3끼 필수" 지시만으로는 실제로 지켜지지 않는 경우가 관측되어,
   // 빠진 끼니를 코드에서 결정론적으로 채워 넣는다 (재시도 대신 보정).
-  const daysWithMeals = ensureDailyMeals(daysWithDbDesc, input.arrivalTime, input.departureTime);
+  const daysWithMeals = ensureDailyMeals(daysWithAirportCoords, input.arrivalTime, input.departureTime);
   // 동선 규칙(호이안 전일 배정/숙소 스타일별 동선/이동거리 최적화)도 프롬프트만으로는
   // 실제로 지켜지지 않는 경우가 관측되어, 같은 방식으로 코드에서 후보정한다.
   const routedDays = enforceRouteRules(daysWithMeals, hotel.style);
   // interests에 "술"/"카페"가 있으면 호이안/다낭 날짜 배정이 끝난 뒤(routedDays 기준)
   // 야간 펍·바 및 카페 브레이크 일정을 결정론적으로 추가한다.
   const daysWithCafe = ensureCafeBreaks(routedDays, input.interests, input.arrivalTime, input.departureTime);
-  const days = ensureNightlifeStops(daysWithCafe, input.interests, input.arrivalTime);
+  const daysWithNightlife = ensureNightlifeStops(daysWithCafe, input.interests, input.arrivalTime);
+  // 파이프라인 마지막 단계 — 위 단계들이 무엇을 했든 상관없이 시간 정렬/최소 간격/
+  // 앵커 위치(호텔출발 08:00 고정, 호텔복귀·공항이동은 항상 마지막)·누락된 앵커
+  // (Day1 체크인/호텔복귀/공항이동)·이름 오탈자를 결정론적으로 최종 강제한다.
+  const days = enforceScheduleInvariants(daysWithNightlife, hotel);
 
   // 예산은 Groq가 아니라 이 함수가 전적으로 계산한다 (AI는 장소만 선택).
   const budget = calculateBudget({
