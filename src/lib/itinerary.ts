@@ -40,9 +40,16 @@ function timeToMinutes(time: string): number {
 
 /**
  * 이 날짜/도착·출발 시간대 조합에서 해당 끼니가 애초에 필요한지 판단.
- * - 도착일(Day 1)은 다낭에 도착하기 전이므로 아침식사는 항상 제외, 저녁 도착이면 점심도 제외
- * - 출발일(마지막 날)은 공항 이동과 겹치므로 저녁식사는 항상 제외, 새벽 출발이면 아침/점심도 제외,
- *   오후 출발이면 점심도 제외
+ *
+ * 도착일(Day 1) — 아침식사는 다낭 도착 전이므로 항상 제외:
+ * - morning(~12시 도착): 점심 이후 관광 가능 → 점심/저녁 포함
+ * - afternoon(12~18시 도착): 저녁 일정만 → 점심 제외, 저녁만 포함
+ * - evening(18시~ 도착): 공항 이동+체크인만 → 점심/저녁 모두 제외
+ *
+ * 출발일(마지막 날) — 공항 이동과 겹치는 저녁식사는 항상 제외:
+ * - morning(~12시 출발): 아침 식사 후 바로 공항 이동 → 점심 제외, 아침만 포함
+ * - afternoon(12~18시 출발): 오전 관광 후 점심까지 → 아침/점심 포함
+ * - evening(18시~ 출발): 풀 일정 → 아침/점심 포함
  */
 function isSlotRequired(
   slotLabel: MealSlot["label"],
@@ -56,13 +63,13 @@ function isSlotRequired(
 
   if (isFirstDay) {
     if (slotLabel === "아침식사") return false;
-    if (arrivalTime === "evening" && slotLabel === "점심식사") return false;
+    if (slotLabel === "점심식사" && arrivalTime !== "morning") return false;
+    if (slotLabel === "저녁식사" && arrivalTime === "evening") return false;
   }
 
   if (isLastDay) {
     if (slotLabel === "저녁식사") return false;
-    if (departureTime === "morning") return false;
-    if (departureTime === "afternoon" && slotLabel === "점심식사") return false;
+    if (slotLabel === "점심식사" && departureTime === "morning") return false;
   }
 
   return true;
