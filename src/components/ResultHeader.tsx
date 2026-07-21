@@ -1,7 +1,8 @@
-import type { TravelScore } from "@/types/travel";
+import type { TravelMonth, TravelScore } from "@/types/travel";
 
 interface ResultHeaderProps {
   score: TravelScore;
+  travelMonth: TravelMonth;
 }
 
 const STAT_LABELS: { key: keyof Omit<TravelScore, "total">; label: string }[] = [
@@ -12,10 +13,20 @@ const STAT_LABELS: { key: keyof Omit<TravelScore, "total">; label: string }[] = 
   { key: "satisfaction", label: "만족도예측" },
 ];
 
-/** 결과 상단 점수 배너 — 총점을 크게, 세부 지표를 나열 */
-export default function ResultHeader({ score }: ResultHeaderProps) {
+/** 다낭은 1~8월 건기 / 9~12월 우기 — lib/groq.ts의 isRainySeason과 동일한 기준 */
+function isRainySeason(travelMonth: TravelMonth): boolean {
+  return travelMonth >= 9 && travelMonth <= 12;
+}
+
+/** 결과 상단 점수 배너 — 총점을 크게, 세부 지표를 나열, 우기 시즌이면 날씨 경고 배너 표시 */
+export default function ResultHeader({ score, travelMonth }: ResultHeaderProps) {
   return (
     <section className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center shadow-2xl backdrop-blur-xl sm:p-12">
+      {isRainySeason(travelMonth) ? (
+        <div className="mb-6 rounded-xl border border-blue-400/30 bg-blue-400/10 px-4 py-3 text-sm text-blue-200">
+          ☔ 9~12월은 우기입니다. 우산/우비를 준비하세요.
+        </div>
+      ) : null}
       <p className="font-mono text-xs tracking-widest text-subtext">VOYAGO SCORE</p>
       <p className="mt-2 font-display text-6xl font-bold text-gold sm:text-7xl">
         {score.total}

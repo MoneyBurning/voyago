@@ -1,7 +1,7 @@
 import Groq, { APIConnectionTimeoutError, RateLimitError } from "groq-sdk";
 import { danangAttractions, danangCafes, danangRestaurants } from "@/data/danang";
 import { calculateBudget, getNights, resolveHotel } from "@/lib/budget";
-import { ensureDailyMeals } from "@/lib/itinerary";
+import { ensureCafeBreaks, ensureDailyMeals, ensureNightlifeStops } from "@/lib/itinerary";
 import { enforceRouteRules } from "@/lib/routing";
 import type {
   AIAnalysis,
@@ -139,6 +139,18 @@ const TIME_OF_DAY_LABEL: Record<TimeOfDay, string> = {
   evening: "저녁 (18:00~23:59)",
 };
 
+/** 다낭은 1~8월 건기(맑음, 실외 관광 최적) / 9~12월 우기(비 많음, 실내 위주 추천)로 나뉜다 */
+function isRainySeason(travelMonth: TravelInput["travelMonth"]): boolean {
+  return travelMonth >= 9 && travelMonth <= 12;
+}
+
+const RAINY_SEASON_PROMPT = `
+
+## 날씨 시즌 규칙 (9~12월 우기)
+우기 기간이므로 실외 관광지 비중을 줄이고
+박물관, 실내 시장, 쇼핑몰, 실내 카페 위주로 일정 구성.
+해변 방문은 오전 이른 시간에만 배정.`;
+
 function buildUserPrompt(input: TravelInput, hotel: HotelRecommendation, nights: number): string {
   const referenceRestaurants = danangRestaurants
     .map(
@@ -169,6 +181,7 @@ function buildUserPrompt(input: TravelInput, hotel: HotelRecommendation, nights:
 - 관심사: ${input.interests.join(", ") || "없음"}
 - 다낭 도착 시간대: ${TIME_OF_DAY_LABEL[input.arrivalTime]}
 - 귀국 출발 시간대: ${TIME_OF_DAY_LABEL[input.departureTime]}
+${isRainySeason(input.travelMonth) ? RAINY_SEASON_PROMPT : ""}
 
 ## 확정된 숙소 (동선 설계의 기준점으로만 사용, 응답에 다시 포함할 필요 없음)
 - 이름: ${hotel.name} (${hotel.nameEn})
@@ -319,7 +332,11 @@ export async function generateTravelPlan(input: TravelInput): Promise<TravelResu
   const daysWithMeals = ensureDailyMeals(rawDays, input.arrivalTime, input.departureTime);
   // 동선 규칙(호이안 전일 배정/숙소 스타일별 동선/이동거리 최적화)도 프롬프트만으로는
   // 실제로 지켜지지 않는 경우가 관측되어, 같은 방식으로 코드에서 후보정한다.
-  const days = enforceRouteRules(daysWithMeals, hotel.style);
+  const routedDays = enforceRouteRules(daysWithMeals, hotel.style);
+  // interests에 "술"/"카페"가 있으면 호이안/다낭 날짜 배정이 끝난 뒤(routedDays 기준)
+  // 야간 펍·바 및 카페 브레이크 일정을 결정론적으로 추가한다.
+  const daysWithCafe = ensureCafeBreaks(routedDays, input.interests, input.arrivalTime, input.departureTime);
+  const days = ensureNightlifeStops(daysWithCafe, input.interests, input.arrivalTime);
 
   // 예산은 Groq가 아니라 이 함수가 전적으로 계산한다 (AI는 장소만 선택).
   const budget = calculateBudget({

@@ -1,5 +1,5 @@
-import { danangHiddenSpots } from "@/data/danang";
-import type { DaySchedule, ScheduleItem, TimeOfDay } from "@/types/travel";
+import { danangBars, danangCafes, danangHiddenSpots } from "@/data/danang";
+import type { DaySchedule, Interest, ScheduleItem, TimeOfDay } from "@/types/travel";
 
 /**
  * Groq 시스템 프롬프트에 "하루 3끼 필수, 빠지면 스스로 검토 후 채워서 출력" 지시를
@@ -201,5 +201,142 @@ export function ensureDailyMeals(
     const stabilized = stabilizeAnchors(filled, isFirstDay, isLastDay);
 
     return { ...day, items: stabilized };
+  });
+}
+
+/**
+ * interests에 "술"/"카페"가 포함되면 그 취향이 시스템 프롬프트 지시만으로는 매일
+ * 일관되게 반영되지 않는 것이 관측되어, ensureDailyMeals/enforceRouteRules와 동일한
+ * 방식으로 enforceRouteRules 이후(동선/호이안 배정이 확정된 뒤)에 코드에서
+ * 결정론적으로 야간 펍·바 일정과 카페 브레이크 일정을 채워 넣는다.
+ */
+
+// routing.ts의 호이안 권역 판별 기준과 동일 (동일 파일을 import하면 순환 참조가 생겨 상수만 복제)
+const HOI_AN_LAT_MAX = 15.95;
+const HOI_AN_LNG_MIN = 108.3;
+
+function isHoiAnCoord(lat: number, lng: number): boolean {
+  return lat <= HOI_AN_LAT_MAX && lng >= HOI_AN_LNG_MIN;
+}
+
+const NIGHTLIFE_INSERT_TIME = "21:30";
+
+/** 마지막 날(공항 이동과 겹침)과, 저녁 도착이라 일정 자체가 없는 Day 1은 야간 일정에서 제외 */
+function isNightlifeDayRequired(dayNumber: number, totalDays: number, arrivalTime: TimeOfDay): boolean {
+  const isFirstDay = dayNumber === 1;
+  const isLastDay = dayNumber === totalDays;
+
+  if (isLastDay) return false;
+  if (isFirstDay && arrivalTime === "evening") return false;
+
+  return true;
+}
+
+/**
+ * interests에 "술"이 포함되면 매일 저녁 21:00~23:00 사이에 실존 펍/바 일정을 1개 추가한다.
+ * 그날의 관광지가 호이안 권역이면 호이안 바를, 아니면 다낭 바를 배정한다.
+ */
+export function ensureNightlifeStops(
+  days: DaySchedule[],
+  interests: Interest[],
+  arrivalTime: TimeOfDay
+): DaySchedule[] {
+  if (!interests.includes("술") || danangBars.length === 0) return days;
+
+  const totalDays = days.length;
+  const usedNames = new Set(days.flatMap((day) => day.items.map((item) => item.name)));
+  const daNangPool = danangBars.filter((bar) => bar.area === "다낭");
+  const hoiAnPool = danangBars.filter((bar) => bar.area === "호이안");
+
+  return days.map((day) => {
+    if (!isNightlifeDayRequired(day.day, totalDays, arrivalTime)) return day;
+    if (day.items.some((item) => danangBars.some((bar) => bar.name === item.name))) return day;
+
+    const isHoiAnDay = day.items.some((item) => item.category === "see" && isHoiAnCoord(item.lat, item.lng));
+    const pool = isHoiAnDay && hoiAnPool.length > 0 ? hoiAnPool : daNangPool;
+    if (pool.length === 0) return day;
+
+    const bar = pool.find((b) => !usedNames.has(b.name)) ?? pool[0];
+    usedNames.add(bar.name);
+
+    const newItem: ScheduleItem = {
+      time: NIGHTLIFE_INSERT_TIME,
+      name: bar.name,
+      desc: `${bar.highlight} · ${bar.priceRange}, 그랩 이동`,
+      category: "eat",
+      badge: "추천",
+      lat: bar.lat,
+      lng: bar.lng,
+    };
+
+    const merged = [...day.items, newItem].sort((a, b) => a.time.localeCompare(b.time));
+    return { ...day, items: stabilizeAnchors(merged, day.day === 1, day.day === totalDays) };
+  });
+}
+
+const CAFE_MORNING_TIME = "10:30";
+const CAFE_AFTERNOON_TIME = "15:30";
+/** 카페 브레이크 삽입 시각 앞뒤 이 범위(분) 안에 이미 다른 일정이 있으면 그 시각은 건너뛴다 */
+const CAFE_CONFLICT_WINDOW_MIN = 60;
+
+/** 공항 이동만 있고 일정 자체가 없는 날(저녁 도착 Day 1 / 새벽 출발 마지막 날)은 카페 브레이크도 생략 */
+function isCafeDayRequired(
+  dayNumber: number,
+  totalDays: number,
+  arrivalTime: TimeOfDay,
+  departureTime: TimeOfDay
+): boolean {
+  const isFirstDay = dayNumber === 1;
+  const isLastDay = dayNumber === totalDays;
+
+  if (isFirstDay && arrivalTime === "evening") return false;
+  if (isLastDay && departureTime === "morning") return false;
+
+  return true;
+}
+
+function hasTimeConflict(items: ScheduleItem[], time: string): boolean {
+  const target = timeToMinutes(time);
+  return items.some((item) => Math.abs(timeToMinutes(item.time) - target) < CAFE_CONFLICT_WINDOW_MIN);
+}
+
+/**
+ * interests에 "카페"가 포함되면 매일 오전 또는 오후에 실존 카페 브레이크 일정을 1개 추가한다.
+ * 오후(15:30) 슬롯을 우선 시도하고, 이미 다른 일정과 겹치면 오전(10:30) 슬롯으로 대체하며,
+ * 둘 다 겹치는 빡빡한 날은 삽입을 건너뛴다.
+ */
+export function ensureCafeBreaks(
+  days: DaySchedule[],
+  interests: Interest[],
+  arrivalTime: TimeOfDay,
+  departureTime: TimeOfDay
+): DaySchedule[] {
+  if (!interests.includes("카페") || danangCafes.length === 0) return days;
+
+  const totalDays = days.length;
+  const usedNames = new Set(days.flatMap((day) => day.items.map((item) => item.name)));
+
+  return days.map((day) => {
+    if (!isCafeDayRequired(day.day, totalDays, arrivalTime, departureTime)) return day;
+    if (day.items.some((item) => danangCafes.some((cafe) => cafe.name === item.name))) return day;
+
+    const insertTime = hasTimeConflict(day.items, CAFE_AFTERNOON_TIME) ? CAFE_MORNING_TIME : CAFE_AFTERNOON_TIME;
+    if (hasTimeConflict(day.items, insertTime)) return day;
+
+    const cafe = danangCafes.find((c) => !usedNames.has(c.name)) ?? danangCafes[0];
+    usedNames.add(cafe.name);
+
+    const newItem: ScheduleItem = {
+      time: insertTime,
+      name: cafe.name,
+      desc: `${cafe.highlight} · ${cafe.priceRange}, 카페 브레이크`,
+      category: "eat",
+      badge: "추천",
+      lat: cafe.lat,
+      lng: cafe.lng,
+    };
+
+    const merged = [...day.items, newItem].sort((a, b) => a.time.localeCompare(b.time));
+    return { ...day, items: stabilizeAnchors(merged, day.day === 1, day.day === totalDays) };
   });
 }

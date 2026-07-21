@@ -223,6 +223,22 @@ export interface Cafe {
   googleMapsUrl: string;
 }
 
+/** 실제 존재가 검증된 다낭/호이안 펍·바 (AI 허구 방지용 참조 DB) */
+export interface Bar {
+  name: string;
+  nameEn: string;
+  address: string;
+  lat: number;
+  lng: number;
+  /** 소재 권역 (동선 규칙상 호이안 날/다낭 날 구분에 사용) */
+  area: "다낭" | "호이안";
+  /** 1인 기준 가격대 (예: "12~20만동") */
+  priceRange: string;
+  /** 이 바의 특징 한 줄 (뷰/컨셉 등) */
+  highlight: string;
+  googleMapsUrl: string;
+}
+
 /** 실제 존재가 검증된 다낭/호이안 관광지 (AI 허구 방지용 참조 DB) */
 export interface Attraction {
   name: string;

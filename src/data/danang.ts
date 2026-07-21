@@ -1,4 +1,4 @@
-import type { Attraction, Cafe, HiddenSpot, HotelStyle, Restaurant, TravelBudget } from "@/types/travel";
+import type { Attraction, Bar, Cafe, HiddenSpot, HotelStyle, Restaurant, TravelBudget } from "@/types/travel";
 
 /** 이름/주소 문자열로 Google Maps "검색" URL을 만든다 (실제 place-id를 알 수 없으므로 항상 검색 링크로 생성). */
 function mapsUrl(query: string): string {
@@ -604,6 +604,71 @@ export const danangCafes: Cafe[] = [
     highlight: "야자수 잎 지붕 방갈로와 백사장으로 이어지는 선베드가 있는 미케 해변 비치프론트 카페 겸 라운지바",
     localRatio: 20,
     googleMapsUrl: mapsUrl("Paradise Beach Da Nang, 270 Võ Nguyên Giáp, Quận Ngũ Hành Sơn, Đà Nẵng"),
+  },
+];
+
+/**
+ * 검증된 다낭·호이안 펍/바 5곳 (웹 검색으로 실존 여부를 교차 확인한 데이터).
+ * 사용자가 요청한 호이안 바 상호 "The Alley Bar"는 그 이름 그대로는 호이안이 아닌
+ * 호치민에 있는 동명의 바로 확인되어, 같은 골목(Nguyễn Thái Học 거리) 상권의 실존
+ * 대표 바 "코피 바"로 대체했다 — 각 항목은 대체 여부와 무관하게 실제 검색 소스로
+ * 존재가 확인된 곳만 담았다.
+ */
+export const danangBars: Bar[] = [
+  {
+    name: "스카이36",
+    nameEn: "Sky36",
+    address: "36 Bạch Đằng, Phường Thạch Thang, Quận Hải Châu, Đà Nẵng (노보텔 다낭 프리미어 한리버 35~37층)",
+    lat: 16.0678,
+    lng: 108.2246,
+    area: "다낭",
+    priceRange: "15~25만동 (칵테일 1잔 기준)",
+    highlight: "베트남에서 가장 높은 루프탑 바, 한강·용다리 파노라마 야경",
+    googleMapsUrl: mapsUrl("Sky36 Danang, 36 Bạch Đằng, Quận Hải Châu, Đà Nẵng"),
+  },
+  {
+    name: "루나 펍",
+    nameEn: "Luna Pub Danang",
+    address: "9A Trần Phú, Phường Thạch Thang, Quận Hải Châu, Đà Nẵng",
+    lat: 16.0708,
+    lng: 108.2225,
+    area: "다낭",
+    priceRange: "10~18만동 (맥주·칵테일 1잔 기준)",
+    highlight: "다낭 최초의 이탈리안 레스토랑 겸 펍, 현지 직장인·외국인이 즐겨찾는 라이브 분위기",
+    googleMapsUrl: mapsUrl("Luna Pub Danang, 9A Trần Phú, Quận Hải Châu, Đà Nẵng"),
+  },
+  {
+    name: "워터프론트",
+    nameEn: "Waterfront Danang Restaurant & Bar",
+    address: "150-152 Bạch Đằng, Quận Hải Châu, Đà Nẵng",
+    lat: 16.0605,
+    lng: 108.2225,
+    area: "다낭",
+    priceRange: "12~20만동 (칵테일 1잔 기준)",
+    highlight: "한강변 2층 테라스석에서 즐기는 칵테일과 야경, 외국인 여행자들의 대표 강변 바",
+    googleMapsUrl: mapsUrl("Waterfront Danang Restaurant Bar, 150-152 Bạch Đằng, Quận Hải Châu, Đà Nẵng"),
+  },
+  {
+    name: "코피 바",
+    nameEn: "KoFi Bar",
+    address: "11 Nguyễn Thái Học, Phường Minh An, Hội An, Quảng Nam",
+    lat: 15.8779,
+    lng: 108.3271,
+    area: "호이안",
+    priceRange: "8~15만동 (칵테일 1잔 기준)",
+    highlight: "호이안 구시가지 골목 안쪽에 자리한 루프탑 좌석의 아늑한 칵테일 바",
+    googleMapsUrl: mapsUrl("KoFi Bar Hoi An, 11 Nguyễn Thái Học, Hội An, Quảng Nam"),
+  },
+  {
+    name: "비포 앤 나우",
+    nameEn: "Before & Now Bar",
+    address: "94 Nguyễn Thái Học, Phường Minh An, Hội An, Quảng Nam",
+    lat: 15.8783,
+    lng: 108.3277,
+    area: "호이안",
+    priceRange: "8~15만동 (칵테일 1잔 기준)",
+    highlight: "팝아트풍 인테리어의 구시가지 대표 바, 여행자들이 늦은 밤까지 어울리는 스팟",
+    googleMapsUrl: mapsUrl("Before & Now Bar Hoi An, 94 Nguyễn Thái Học, Hội An, Quảng Nam"),
   },
 ];
 

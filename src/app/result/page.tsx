@@ -79,7 +79,7 @@ export default function ResultPage() {
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-16 px-6 py-16">
       <AIAnalysisCard input={input} aiAnalysis={result.aiAnalysis} satisfaction={result.score.satisfaction} />
 
-      <ResultHeader score={result.score} />
+      <ResultHeader score={result.score} travelMonth={input.travelMonth} />
 
       <HotelCard hotel={result.hotel} />
 
